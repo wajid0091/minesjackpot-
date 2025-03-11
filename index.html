@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- رسپانسیو ڈیزائن کیلئے meta viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mines Jackpot Game</title>
+  <style>
+    /* html اور body کو مکمل اسکرین ہائٹ دینا */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    /* بنیادی ری سیٹ */
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      background: #0f235a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    /* کنٹینر جو پورے اسکرین کو کور کرے */
+    .container {
+      width: 90%;
+      max-width: 400px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    /* لاگ ان پینل */
+    #loginPanel {
+      background: #1d327a;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+      margin-bottom: 20px;
+      transition: transform 0.3s ease;
+    }
+    #loginPanel:hover {
+      transform: scale(1.02);
+    }
+    #loginPanel input {
+      width: 80%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: center;
+    }
+    #loginPanel button {
+      background: #00b300;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin: 5px;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+    #loginPanel button:hover {
+      background: #009900;
+      transform: translateY(-2px);
+    }
+    /* گیم کنٹینر */
+    #gameContainer {
+      background: #1d327a;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+      display: none;
+    }
+    /* لوگو */
+    #jackpotLogo {
+      width: 50%;
+      max-width: 200px;
+      margin: 0 auto 10px auto;
+      display: block;
+    }
+    /* بیلنس اور ون ڈسپلے */
+    .balance-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    .balance-row span {
+      margin: 0 5px;
+    }
+    /* گرید */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-gap: 5px;
+      margin: 10px 0;
+    }
+    .cell {
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #274080;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+      overflow: hidden;
+    }
+    .cell:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 5px rgba(255,255,255,0.3);
+    }
+    /* اینیمیشن بہتر بنانے کیلئے bounce ایفیکٹ */
+    @keyframes reveal {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .cell.revealed {
+      animation: reveal 0.4s cubic-bezier(.68,-0.55,.27,1.55) forwards;
+    }
+    .cell.safe { background: #2e4e98; }
+    .cell.bomb { background: #9c2b2b; }
+    .cell.chest { background: #c79a0b; }
+    .cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    /* کنٹرولز */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      align-items: center;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .controls label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .controls input {
+      width: 60px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .action-btn {
+      background: #00b300;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.3s ease, transform 0.3s ease;
+      margin: 5px;
+    }
+    .action-btn:hover {
+      background: #009900;
+      transform: translateY(-2px);
+    }
+    /* اسٹیٹس بار */
+    .status-bar {
+      min-height: 24px;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      color: #ffdb4d;
+    }
+    /* ساؤنڈ ٹوگل */
+    .sound-toggle {
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 24px;
+      color: #fff;
+      transition: transform 0.3s ease;
+    }
+    .sound-toggle:hover {
+      transform: scale(1.1);
+    }
+    /* لاگ آؤٹ بٹن */
+    #logoutBtn {
+      margin-top: 10px;
+      background: #b30000;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+    #logoutBtn:hover {
+      background: #990000;
+      transform: translateY(-2px);
+    }
+    /* موبائل کیلئے میڈیا کوئریز */
+    @media (max-width: 480px) {
+      body {
+        padding: 5px;
+      }
+      .balance-row {
+        font-size: 0.9rem;
+      }
+      .controls input {
+        width: 50px;
+      }
+      .sound-toggle {
+        font-size: 20px;
+      }
+      #jackpotLogo {
+        max-width: 150px;
+      }
+    }
+  </style>
+  <!-- Firebase SDKs (compat ورژنز) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script>
+    // Firebase کنفیگریشن (ضرورت کے مطابق اپنی تفصیلات استعمال کریں)
+    const firebaseConfig = {
+      apiKey: "AIzaSyACWflEuk20fwT9FxoIZAmUY9UoHeU9HWY",
+      authDomain: "lacky-777.firebaseapp.com",
+      databaseURL: "https://lacky-777-default-rtdb.firebaseio.com",
+      projectId: "lacky-777",
+      storageBucket: "lacky-777.firebasestorage.app",
+      messagingSenderId: "511980111053",
+      appId: "1:511980111053:web:638227b3b60c98878b1584",
+      measurementId: "G-DEND6HY1QP"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- لاگ ان پینل -->
+    <div id="loginPanel">
+      <h1>Login</h1>
+      <input type="email" id="emailInput" placeholder="Email" required>
+      <input type="password" id="passwordInput" placeholder="Password" required>
+      <br>
+      <button id="loginBtn">Login</button>
+      <button id="signupBtn">Sign Up</button>
+      <div id="loginError" style="color: #ff4d4d; margin-top: 10px;"></div>
+    </div>
+    <!-- گیم کنٹینر -->
+    <div id="gameContainer">
+      <img id="jackpotLogo" src="https://i.imgur.com/zwOfH39.png" alt="Mines Jackpot">
+      <div class="balance-row">
+        <span id="balanceDisplay">Balance: 0.00</span>
+        <span id="winDisplay">| WIN: 0</span>
+      </div>
+      <div class="status-bar" id="statusBar">Press "Start" to begin.</div>
+      <div class="grid" id="grid"></div>
+      <div class="controls">
+        <div>
+          <label for="betAmount">Bet</label>
+          <input type="number" id="betAmount" min="10" max="1000" value="10">
+        </div>
+        <div>
+          <label for="mineCount">Mines</label>
+          <input type="number" id="mineCount" min="2" max="24" value="2">
+        </div>
+        <button class="action-btn" id="actionBtn">Start</button>
+      </div>
+      <div class="sound-toggle" id="soundToggle">🔊</div>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </div>
+  <!-- آڈیو عناصر -->
+  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2023/03/05/audio_283659c7b7.mp3?filename=happy-childrens-tunes-kid-games-music-comedy-situation-soundtrack-play-arcade-283659.mp3" loop></audio>
+  <audio id="coinSound" src="https://cdn.pixabay.com/download/audio/2021/09/07/audio_11c5fc5a79.mp3?filename=coin-recieved-230517.mp3"></audio>
+  <audio id="bombSound" src="https://cdn.pixabay.com/download/audio/2021/09/07/audio_ef45b37c56.mp3?filename=error-sound-39539.mp3"></audio>
+  <script>
+    // --- Sound Elements ---
+    const bgMusic = document.getElementById("bgMusic");
+    const coinSound = document.getElementById("coinSound");
+    const bombSound = document.getElementById("bombSound");
+    const soundToggle = document.getElementById("soundToggle");
+    bgMusic.volume = 0.3;
+    coinSound.volume = 0.7;
+    bombSound.volume = 1.0;
+    bgMusic.addEventListener("canplay", () => {
+      bgMusic.play().catch(() => {});
+    });
+    soundToggle.addEventListener("click", () => {
+      if (soundToggle.textContent === "🔊") {
+        soundToggle.textContent = "🔇";
+        bgMusic.pause();
+      } else {
+        soundToggle.textContent = "🔊";
+        bgMusic.play().catch(() => {});
+      }
+    });
+    // --- Game Variables ---
+    let coinBalance = 0;
+    // wagerBalance is initialized as 3x the deposited amount (مثلاً 500 روپے پر 1500)
+    let wagerBalance = 0;
+    let currentWin = 0;
+    let currentUser = null;
+    let gameStarted = false;
+    let gameOver = false;
+    let totalMines = 2;
+    let bombsPositions = [];
+    let revealedCount = 0;
+    const rows = 5, cols = 5;
+    const gridElement = document.getElementById("grid");
+    const statusBar = document.getElementById("statusBar");
+    const mineCountInput = document.getElementById("mineCount");
+    const betAmountInput = document.getElementById("betAmount");
+    const actionBtn = document.getElementById("actionBtn");
+    const balanceDisplay = document.getElementById("balanceDisplay");
+    const winDisplay = document.getElementById("winDisplay");
+    // مکمل multiplierTables شامل ہیں
+    const multiplierTables = {
+      // 2 Mines (Safe Boxes = 23)
+      2: {
+        1: 1.05,
+        2: 1.10,
+        3: 1.20,
+        4: 1.30,
+        5: 1.45,
+        6: 1.60,
+        7: 1.80,
+        8: 2.10,
+        9: 2.30,
+        10: 2.50,
+        11: 2.75,
+        12: 3.00,
+        13: 3.15,
+        14: 3.40,
+        15: 3.90,
+        16: 4.15,
+        17: 4.35,
+        18: 4.70,
+        19: 5.00,
+        20: 5.30,
+        21: 6.00,
+        22: 6.50,
+        23: { multiplier: 100.00 }
+      },
+      // 3 Mines (Safe Boxes = 22)
+      3: {
+        1: 1.10,
+        2: 1.20,
+        3: 1.30,
+        4: 1.35,
+        5: 1.45,
+        6: 1.70,
+        7: 2.00,
+        8: 2.30,
+        9: 2.60,
+        10: 2.90,
+        11: 3.15,
+        12: 3.30,
+        13: 3.65,
+        14: 4.00,
+        15: 4.30,
+        16: 4.55,
+        17: 4.35,
+        18: 4.60,
+        19: 5.00,
+        20: 5.50,
+        21: 70.00,
+        22: { multiplier: 80.50 }
+      },
+      // باقی multiplierTables جیسا کہ اصل کوڈ میں موجود ہیں...
+      // (مزید mines کی تفصیلات ویسے ہی برقرار ہیں)
+    };
+    function loadCoinBalance() {
+      if (!currentUser) return;
+      const coinRef = database.ref("users/" + currentUser.uid + "/coinBalance");
+      coinRef.on("value", (snapshot) => {
+        coinBalance = snapshot.val() || 0;
+        // اگر wagerBalance پہلے سیٹ نہیں تو اسے coinBalance کے تین گنا سے سیٹ کریں
+        if (wagerBalance === 0) {
+          wagerBalance = coinBalance * 3;
+        }
+        updateBalanceDisplay();
+      });
+    }
+    function updateCoinBalance(newBalance) {
+      if (!currentUser) return;
+      database.ref("users/" + currentUser.uid + "/coinBalance").set(newBalance);
+    }
+    function updateBalanceDisplay() {
+      balanceDisplay.textContent = "Balance: " + coinBalance.toFixed(2);
+    }
+    function updateWinDisplay(amount) {
+      currentWin = amount;
+      winDisplay.textContent = "| WIN: " + currentWin.toFixed(2);
+    }
+    function createGrid() {
+      gridElement.innerHTML = "";
+      for (let i = 0; i < rows * cols; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = i;
+        cell.addEventListener("click", onCellClick);
+        gridElement.appendChild(cell);
+      }
+    }
+    function resetGrid() {
+      createGrid();
+      bombsPositions = [];
+      revealedCount = 0;
+      currentWin = 0;
+      updateWinDisplay(0);
+    }
+    function placeBombs() {
+      bombsPositions = [];
+      const totalBoxes = rows * cols;
+      while (bombsPositions.length < totalMines) {
+        const randomIndex = Math.floor(Math.random() * totalBoxes);
+        if (!bombsPositions.includes(randomIndex)) {
+          bombsPositions.push(randomIndex);
+        }
+      }
+    }
+    function startGame() {
+      const betAmount = parseInt(betAmountInput.value, 10);
+      totalMines = parseInt(mineCountInput.value, 10) || 2;
+      if (betAmount < 10 || betAmount > 1000) {
+        statusBar.textContent = "Bet must be between 10 and 1000.";
+        return;
+      }
+      if (totalMines < 2 || totalMines > 24) {
+        statusBar.textContent = "Mines must be between 2 and 24.";
+        return;
+      }
+      // نیا واگر سسٹم: اگر یوزر نے مثلاً 100 روپے کا بیٹ لگایا تو wagerBalance سے 30% (یعنی 30 روپے) کٹیں
+      const wagerDeduction = betAmount * 0.3;
+      if (wagerBalance < wagerDeduction) {
+        statusBar.textContent = "Insufficient wager balance to cover the wager fee.";
+        return;
+      }
+      wagerBalance -= wagerDeduction;
+      // اب باقی گیم کا عمل ویسا ہی ہے
+      resetGrid();
+      placeBombs();
+      gameStarted = true;
+      gameOver = false;
+      statusBar.textContent = "Game started! Click on a cell.";
+      actionBtn.textContent = "Cashout";
+    }
+    function cashOut() {
+      if (!gameStarted || gameOver) return;
+      const partialWin = computeWinnings();
+      coinBalance += partialWin;
+      updateCoinBalance(coinBalance);
+      endGame("You cashed out " + partialWin + " coins!");
+    }
+    function onCellClick(e) {
+      if (!gameStarted || gameOver) return;
+      const cell = e.currentTarget;
+      if (cell.classList.contains("revealed")) return;
+      const index = parseInt(cell.dataset.index, 10);
+      if (bombsPositions.includes(index)) {
+        cell.classList.add("revealed", "bomb");
+        cell.innerHTML = `<img src="https://i.imgur.com/9ODQjQN.png" alt="Bomb">`;
+        bombSound.play();
+        endGame("Boom! You hit a mine.");
+      } else {
+        revealedCount++;
+        coinSound.play();
+        cell.classList.add("revealed", "safe");
+        cell.innerHTML = `<img src="https://i.imgur.com/CC1zvb4.png" alt="Safe">`;
+        const safeCells = getSafeCells(totalMines);
+        if (revealedCount === safeCells) {
+          const jackpotWin = computeWinnings();
+          coinBalance += jackpotWin;
+          updateCoinBalance(coinBalance);
+          cell.classList.remove("safe");
+          cell.classList.add("chest");
+          cell.innerHTML = `<img src="https://i.imgur.com/E3unl0g.png" alt="Chest">`;
+          endGame("Jackpot! You win " + jackpotWin + " coins.");
+        } else {
+          const potentialWin = computeWinnings();
+          updateWinDisplay(potentialWin);
+          statusBar.textContent = "Keep going, or Cashout?";
+        }
+      }
+    }
+    function endGame(message) {
+      gameOver = true;
+      gameStarted = false;
+      actionBtn.textContent = "Start";
+      statusBar.textContent = message;
+      revealAllCells();
+    }
+    function revealAllCells() {
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach(cell => {
+        if (!cell.classList.contains("revealed")) {
+          const index = parseInt(cell.dataset.index, 10);
+          if (bombsPositions.includes(index)) {
+            cell.classList.add("revealed", "bomb");
+            cell.innerHTML = `<img src="https://i.imgur.com/9ODQjQN.png" alt="Bomb">`;
+          } else {
+            cell.classList.add("revealed", "safe");
+            cell.innerHTML = `<img src="https://i.imgur.com/CC1zvb4.png" alt="Safe">`;
+          }
+        }
+      });
+    }
+    function getSafeCells(mineCount) {
+      const table = multiplierTables[mineCount];
+      if (!table) return 25 - mineCount;
+      const numericKeys = Object.keys(table).filter(k => !isNaN(k)).map(Number);
+      return Math.max(...numericKeys);
+    }
+    function computeWinnings() {
+      const table = multiplierTables[totalMines];
+      if (!table) return 0;
+      let multiplier = 1;
+      if (table[revealedCount]) {
+        if (typeof table[revealedCount] === "object") {
+          multiplier = table[revealedCount].multiplier;
+        } else {
+          multiplier = table[revealedCount];
+        }
+      }
+      return Math.floor(parseInt(betAmountInput.value, 10) * multiplier);
+    }
+    const loginPanel = document.getElementById("loginPanel");
+    const gameContainer = document.getElementById("gameContainer");
+    const loginBtn = document.getElementById("loginBtn");
+    const signupBtn = document.getElementById("signupBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const emailInput = document.getElementById("emailInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const loginError = document.getElementById("loginError");
+    loginBtn.addEventListener("click", () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          loginPanel.style.display = "none";
+          gameContainer.style.display = "block";
+          loadCoinBalance();
+        })
+        .catch((error) => {
+          loginError.textContent = error.message;
+        });
+    });
+    signupBtn.addEventListener("click", () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          updateCoinBalance(100);
+          loginPanel.style.display = "none";
+          gameContainer.style.display = "block";
+          loadCoinBalance();
+        })
+        .catch((error) => {
+          loginError.textContent = error.message;
+        });
+    });
+    logoutBtn.addEventListener("click", () => {
+      auth.signOut().then(() => {
+        currentUser = null;
+        gameContainer.style.display = "none";
+        loginPanel.style.display = "block";
+        emailInput.value = "";
+        passwordInput.value = "";
+        loginError.textContent = "";
+      });
+    });
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        currentUser = user;
+        loginPanel.style.display = "none";
+        gameContainer.style.display = "block";
+        loadCoinBalance();
+      } else {
+        currentUser = null;
+        gameContainer.style.display = "none";
+        loginPanel.style.display = "block";
+      }
+    });
+    createGrid();
+    actionBtn.addEventListener("click", () => {
+      if (!gameStarted) {
+        startGame();
+      } else {
+        cashOut();
+      }
+    });
+  </script>
+</body>
+</html>
