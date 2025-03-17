@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Wing Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- LoadJS Library for future multiplayer support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/loadjs/3.6.1/loadJS.min.js"></script>
+    <style>
+      /* Disable scrolling */
+      html, body {
+        overflow: hidden;
+      }
+      /* Basic Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #101010;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        min-height: 100vh;
+      }
+      /* Login Container */
+      #loginContainer {
+        margin-bottom: 20px;
+        padding: 20px;
+        border: 2px solid #444;
+        border-radius: 8px;
+        background: #1a1a1a;
+        text-align: center;
+        width: 90%;
+        max-width: 400px;
+      }
+      #loginContainer input {
+        width: 80%;
+        padding: 8px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 4px;
+      }
+      #loginContainer button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        background: #ffcc00;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      /* Coin Container */
+      #coinContainer {
+        position: absolute;
+        top: 0;
+        left: 10px;
+        background: rgba(34, 34, 34, 0.3);
+        padding: 5px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+      }
+      #coinContainer img {
+        width: 20px;
+        height: 20px;
+      }
+      #coinContainer span {
+        font-size: 1.2rem;
+        margin-left: 8px;
+        color: #ffcc00;
+      }
+      /* Game Container */
+      .game-container {
+        width: 100%;
+        max-width: 500px;
+        background: url('https://imgur.com/ggA7Mnf.jpg') no-repeat center center;
+        background-size: cover;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        position: relative;
+        display: block;
+      }
+      /* Status Message */
+      .status-message {
+        text-align: center;
+        margin: 20px 0;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+      /* Poll Container with Winning Ball */
+      #pollContainer {
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 10px 0;
+        min-height: 100px;
+      }
+      .winning-ball {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #fff;
+        transform: scale(0);
+        animation: winningBallAnim 1s forwards;
+        margin: 0 auto;
+      }
+      @keyframes winningBallAnim {
+        0% { transform: scale(0) rotateY(0deg); }
+        50% { transform: scale(1.2) rotateY(180deg); }
+        100% { transform: scale(1) rotateY(360deg); }
+      }
+      /* History Bar */
+      .history-bar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin: 10px 0;
+        justify-content: center;
+      }
+      .history-item {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .history-item span {
+        color: #fff;
+      }
+      /* Betting Container and Number Table */
+      .betting-container {
+        width: 100%;
+        max-width: 500px;
+        background: #1a1a1a;
+        border: 2px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 10px 0;
+      }
+      .bet-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .bet-table td {
+        padding: 0;
+        margin: 0;
+        width: 20%; /* 5 cells per row */
+        vertical-align: middle;
+      }
+      .bet-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: pointer;
+        border: 2px solid #444;
+        transition: transform 0.2s;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        min-height: 100px;
+      }
+      .bet-box:hover {
+        transform: scale(1.02);
+      }
+      .total-bets {
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+        color: #fff;
+      }
+      .bet-label {
+        width: 100%;
+        text-align: center;
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+      }
+      .user-bet {
+        font-size: 0.8rem;
+        color: #ffff00;
+      }
+      /* Set Vivid Background Colors for Number Bet Boxes */
+      #betBox0, #betBox5 {
+        background-color: #AD1457; /* Updated Pink */
+      }
+      #betBox1, #betBox3, #betBox7, #betBox9 {
+        background-color: #BF0A30; /* Updated Red */
+      }
+      #betBox2, #betBox4, #betBox6, #betBox8 {
+        background-color: #355E3B; /* Hunter Green */
+      }
+      /* Color Bet Container (Additional Options) */
+      #colorBetContainer {
+        width: 100%;
+        max-width: 500px;
+        margin: 10px 0;
+      }
+      .color-bet-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: pointer;
+        border: 2px solid #444;
+        transition: transform 0.2s;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        min-height: 100px;
+      }
+      .color-bet-box:hover {
+        transform: scale(1.02);
+      }
+      /* Set Vivid Background Colors for Color Bet Boxes */
+      #colorBetPink {
+        background-color: #AD1457; /* Updated Pink */
+      }
+      #colorBetRed {
+        background-color: #BF0A30; /* Updated Red */
+      }
+      #colorBetGreen {
+        background-color: #355E3B; /* Hunter Green */
+      }
+      /* Winning Prize and Result Message */
+      .winning-prize {
+        text-align: center;
+        font-size: 1rem;
+        margin: 5px 0;
+        color: #00ff99;
+      }
+      .result-message {
+        text-align: center;
+        min-height: 24px;
+        margin: 5px 0;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+      /* Bet Amount Options */
+      #betOptions {
+        margin-top: 20px;
+        padding: 10px;
+        background: url('https://i.imgur.com/MybLECB.png') no-repeat center center;
+        background-size: cover;
+        border: 2px solid #444;
+        border-radius: 8px;
+        text-align: center;
+      }
+      #betOptions span {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+      }
+      .bet-option {
+        margin: 5px;
+        padding: 8px 15px;
+        background: #444;
+        border: 1px solid #fff;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: background 0.3s, color 0.3s;
+      }
+      .bet-option:hover {
+        background: #ffcc00;
+        color: #000;
+      }
+      .bet-option.selected {
+        background: #ffcc00;
+        color: #000;
+      }
+      @media (max-width: 400px) {
+        .bet-box {
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Audio Elements for Background and Countdown Sounds (hidden) -->
+    <!-- بیک گراؤنڈ ساؤنڈ کو autoplay اور loop ایٹریبیوٹ کے ساتھ شامل کیا گیا ہے -->
+    <audio id="bgAudio" src="7up background music .mp3" autoplay loop preload="auto" style="display: none;"></audio>
+    <audio id="countdownAudio" src="7up Time counting .mp3" preload="auto" style="display: none;"></audio>
+
+    <!-- Login Section -->
+    <div id="loginContainer">
+      <h2>Login</h2>
+      <input type="email" id="emailInput" placeholder="Email" />
+      <br />
+      <input type="password" id="passwordInput" placeholder="Password" />
+      <br />
+      <button id="loginButton">Login</button>
+      <div id="loginError" style="color: red; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="game-container" id="gameContainer" style="display: none;">
+      <!-- Coin Display -->
+      <div id="coinContainer">
+        <img id="coinLogo" src="https://i.imgur.com/cMQ9X0d.png" alt="Coin Logo" />
+        <span id="coinBalanceText">0.0</span>
+      </div>
+
+      <!-- Status Message -->
+      <div class="status-message" id="statusMessage">
+        Betting Starts Now – 10 seconds remaining
+      </div>
+
+      <!-- Poll Container (Winning Number Ball will appear here) -->
+      <div id="pollContainer">Winning Number: -</div>
+
+      <!-- History Bar (shows previous winning numbers) -->
+      <div class="history-bar" id="historyBar"></div>
+
+      <!-- Number Betting Table with 10 Options (0 to 9) -->
+      <div class="betting-container">
+        <table class="bet-table">
+          <tr>
+            <td>
+              <div class="bet-box" id="betBox0">
+                <div class="total-bets" id="totalBet0">Total: 0</div>
+                <div class="bet-label">0</div>
+                <div class="user-bet" id="userBet0">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox1">
+                <div class="total-bets" id="totalBet1">Total: 0</div>
+                <div class="bet-label">1</div>
+                <div class="user-bet" id="userBet1">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox2">
+                <div class="total-bets" id="totalBet2">Total: 0</div>
+                <div class="bet-label">2</div>
+                <div class="user-bet" id="userBet2">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox3">
+                <div class="total-bets" id="totalBet3">Total: 0</div>
+                <div class="bet-label">3</div>
+                <div class="user-bet" id="userBet3">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox4">
+                <div class="total-bets" id="totalBet4">Total: 0</div>
+                <div class="bet-label">4</div>
+                <div class="user-bet" id="userBet4">You: 0</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="bet-box" id="betBox5">
+                <div class="total-bets" id="totalBet5">Total: 0</div>
+                <div class="bet-label">5</div>
+                <div class="user-bet" id="userBet5">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox6">
+                <div class="total-bets" id="totalBet6">Total: 0</div>
+                <div class="bet-label">6</div>
+                <div class="user-bet" id="userBet6">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox7">
+                <div class="total-bets" id="totalBet7">Total: 0</div>
+                <div class="bet-label">7</div>
+                <div class="user-bet" id="userBet7">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox8">
+                <div class="total-bets" id="totalBet8">Total: 0</div>
+                <div class="bet-label">8</div>
+                <div class="user-bet" id="userBet8">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box" id="betBox9">
+                <div class="total-bets" id="totalBet9">Total: 0</div>
+                <div class="bet-label">9</div>
+                <div class="user-bet" id="userBet9">You: 0</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Color Betting Options Container (Additional Options) -->
+      <div id="colorBetContainer">
+        <table class="bet-table">
+          <tr>
+            <td>
+              <div class="bet-box color-bet-box" id="colorBetPink">
+                <div class="total-bets" id="totalBetColorPink">Total: 0</div>
+                <div class="bet-label">Pink</div>
+                <div class="user-bet" id="userBetColorPink">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box color-bet-box" id="colorBetRed">
+                <div class="total-bets" id="totalBetColorRed">Total: 0</div>
+                <div class="bet-label">Red</div>
+                <div class="user-bet" id="userBetColorRed">You: 0</div>
+              </div>
+            </td>
+            <td>
+              <div class="bet-box color-bet-box" id="colorBetGreen">
+                <div class="total-bets" id="totalBetColorGreen">Total: 0</div>
+                <div class="bet-label">Green</div>
+                <div class="user-bet" id="userBetColorGreen">You: 0</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="winning-prize" id="winningPrizeDisplay"></div>
+      <div class="result-message" id="resultMessage"></div>
+
+      <!-- Bet Amount Options -->
+      <div id="betOptions">
+        <span>Select Bet Amount:</span>
+        <button class="bet-option" data-amount="10">10</button>
+        <button class="bet-option" data-amount="20">20</button>
+        <button class="bet-option" data-amount="30">30</button>
+        <button class="bet-option" data-amount="50">50</button>
+        <button class="bet-option" data-amount="100">100</button>
+        <button class="bet-option" data-amount="300">300</button>
+        <button class="bet-option" data-amount="500">500</button>
+        <button class="bet-option" data-amount="1000">1000</button>
+        <button class="bet-option" data-amount="3000">3000</button>
+      </div>
+    </div>
+
+    <!-- Firebase and Game Logic -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+      import { getDatabase, ref, onValue, set, runTransaction } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyACWflEuk20fwT9FxoIZAmUY9UoHeU9HWY",
+        authDomain: "lacky-777.firebaseapp.com",
+        databaseURL: "https://lacky-777-default-rtdb.firebaseio.com",
+        projectId: "lacky-777",
+        storageBucket: "lacky-777.firebasestorage.app",
+        messagingSenderId: "511980111053",
+        appId: "1:511980111053:web:638227b3b60c98878b1584",
+        measurementId: "G-DEND6HY1QP"
+      };
+
+      // Initialize Firebase
+      const appFirebase = initializeApp(firebaseConfig);
+      console.log("Firebase initialized");
+      const auth = getAuth(appFirebase);
+      const database = getDatabase(appFirebase);
+
+      // Global Variables for Coin Balance and Selected Bet Amount
+      let currentCoinBalance = 0;
+      let selectedBetAmount = 10; // Default bet amount
+
+      // Local bets storage for number bets (0-9)
+      const userBets = {};
+      for (let i = 0; i < 10; i++) {
+        userBets[i] = 0;
+      }
+      // اب یوزر ہر نمبر پر آزادانہ بیٹ لگا سکتا ہے
+
+      // Local storage for color bets
+      const colorBets = { pink: 0, red: 0, green: 0 };
+      // اب یوزر ہر کلر پر آزادانہ بیٹ لگا سکتا ہے
+
+      // Flag for prepopulating history only once
+      let historyPrepopulated = false;
+
+      // DOM Elements
+      const loginContainer = document.getElementById("loginContainer");
+      const emailInput = document.getElementById("emailInput");
+      const passwordInput = document.getElementById("passwordInput");
+      const loginButton = document.getElementById("loginButton");
+      const loginError = document.getElementById("loginError");
+      const coinBalanceText = document.getElementById("coinBalanceText");
+      const gameContainer = document.getElementById("gameContainer");
+      const pollContainer = document.getElementById("pollContainer");
+
+      // Update coin display
+      function updateCoinDisplay(newBalance) {
+        coinBalanceText.textContent = newBalance.toFixed(1);
+      }
+
+      // Login logic
+      loginButton.addEventListener("click", () => {
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        if (!email || !password) {
+          loginError.textContent = "Please enter both email and password.";
+          return;
+        }
+        signInWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+            loginContainer.style.display = "none";
+            gameContainer.style.display = "block";
+            loginError.textContent = "";
+            // Start background sound upon successful login
+            const bgAudio = document.getElementById("bgAudio");
+            if (bgAudio) {
+              bgAudio.currentTime = 0;
+              bgAudio.play();
+            }
+            if (!historyPrepopulated) {
+              prepopulateHistory();
+              historyPrepopulated = true;
+            }
+            if (!gameRoundInProgress) {
+              startGameRound();
+            }
+          })
+          .catch((error) => {
+            loginError.textContent = "Login Error: " + error.message;
+          });
+      });
+
+      // Listen for authentication state and update coin balance and bets realtime
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          const coinRef = ref(database, 'users/' + user.uid + '/coinBalance');
+          onValue(coinRef, (snapshot) => {
+            let newBalance = snapshot.val() || 0;
+            updateCoinDisplay(newBalance);
+            currentCoinBalance = newBalance;
+          });
+          const totalBetsRef = ref(database, 'gameRoom/currentRound/bets');
+          onValue(totalBetsRef, (snapshot) => {
+            const bets = snapshot.val();
+            if (bets) {
+              for (let i = 0; i < 10; i++) {
+                document.getElementById("totalBet" + i).textContent = "Total: " + (bets[i] || 0);
+              }
+            }
+          });
+          const colorBetsRef = ref(database, 'gameRoom/currentRound/colorBets');
+          onValue(colorBetsRef, (snapshot) => {
+            const bets = snapshot.val();
+            if (bets) {
+              document.getElementById("totalBetColorPink").textContent = "Total: " + (bets.pink || 0);
+              document.getElementById("totalBetColorRed").textContent = "Total: " + (bets.red || 0);
+              document.getElementById("totalBetColorGreen").textContent = "Total: " + (bets.green || 0);
+            }
+          });
+          loginContainer.style.display = "none";
+          gameContainer.style.display = "block";
+          // Start background sound if not already started
+          const bgAudio = document.getElementById("bgAudio");
+          if (bgAudio) {
+            bgAudio.currentTime = 0;
+            bgAudio.play();
+          }
+          if (!historyPrepopulated) {
+            prepopulateHistory();
+            historyPrepopulated = true;
+          }
+          if (!gameRoundInProgress) {
+            startGameRound();
+          }
+        } else {
+          loginContainer.style.display = "block";
+          gameContainer.style.display = "none";
+        }
+      });
+
+      // Update coin balance in Firebase
+      function updateCoinBalanceInFirebase(newBalance) {
+        const user = auth.currentUser;
+        if (user) {
+          set(ref(database, 'users/' + user.uid + '/coinBalance'), newBalance);
+        }
+      }
+
+      /************************************************
+       * Game Logic for Wing Game with Number and Color Betting Options
+       ************************************************/
+      let gameRoundInProgress = false;
+      let bettingOpen = false;
+      let gameCountdown = 10;
+      let gameCountdownInterval = null;
+
+      // Attach event listeners for number bet boxes (0 to 9)
+      for (let i = 0; i < 10; i++) {
+        const betBox = document.getElementById("betBox" + i);
+        betBox.addEventListener("click", () => {
+          if (!bettingOpen) {
+            document.getElementById("resultMessage").textContent = "Betting window is closed!";
+            return;
+          }
+          if (currentCoinBalance < selectedBetAmount) {
+            document.getElementById("resultMessage").textContent = "Insufficient coin balance!";
+            return;
+          }
+          currentCoinBalance -= selectedBetAmount;
+          updateCoinBalanceInFirebase(currentCoinBalance);
+          userBets[i] += selectedBetAmount;
+          document.getElementById("userBet" + i).textContent = "You: " + userBets[i];
+          const betSideRef = ref(database, 'gameRoom/currentRound/bets/' + i);
+          runTransaction(betSideRef, (currentValue) => {
+            return (currentValue || 0) + selectedBetAmount;
+          });
+          document.getElementById("resultMessage").textContent = "You placed a bet of " + selectedBetAmount + " on " + i + ".";
+        });
+      }
+
+      // Attach event listeners for color bet boxes
+      document.getElementById("colorBetPink").addEventListener("click", () => placeColorBet("pink"));
+      document.getElementById("colorBetRed").addEventListener("click", () => placeColorBet("red"));
+      document.getElementById("colorBetGreen").addEventListener("click", () => placeColorBet("green"));
+
+      function placeColorBet(color) {
+        if (!bettingOpen) {
+          document.getElementById("resultMessage").textContent = "Betting window is closed!";
+          return;
+        }
+        if (currentCoinBalance < selectedBetAmount) {
+          document.getElementById("resultMessage").textContent = "Insufficient coin balance!";
+          return;
+        }
+        currentCoinBalance -= selectedBetAmount;
+        updateCoinBalanceInFirebase(currentCoinBalance);
+        colorBets[color] += selectedBetAmount;
+        document.getElementById("userBetColor" + capitalize(color)).textContent = "You: " + colorBets[color];
+        const colorBetRef = ref(database, 'gameRoom/currentRound/colorBets/' + color);
+        runTransaction(colorBetRef, (currentValue) => {
+          return (currentValue || 0) + selectedBetAmount;
+        });
+        document.getElementById("resultMessage").textContent = "You placed a bet of " + selectedBetAmount + " on " + color + ".";
+      }
+
+      function capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+
+      // Attach event listeners for bet amount buttons
+      const betOptionButtons = document.querySelectorAll(".bet-option");
+      betOptionButtons.forEach((button, index) => {
+        button.addEventListener("click", function() {
+          betOptionButtons.forEach(btn => btn.classList.remove("selected"));
+          this.classList.add("selected");
+          selectedBetAmount = parseInt(this.getAttribute("data-amount"));
+        });
+        if (index === 0) {
+          button.classList.add("selected");
+        }
+      });
+
+      // Prepopulate history with 10 random winning numbers (0-9)
+      function prepopulateHistory() {
+        const historyBar = document.getElementById("historyBar");
+        historyBar.innerHTML = "";
+        for (let i = 0; i < 10; i++) {
+          let rand = Math.floor(Math.random() * 10);
+          addToHistory(rand, false);
+        }
+      }
+
+      // Add winning number to history
+      function addToHistory(number, checkRemoval = true) {
+        const historyBar = document.getElementById("historyBar");
+        const historyItem = document.createElement("div");
+        historyItem.classList.add("history-item");
+        const span = document.createElement("span");
+        span.textContent = number;
+        historyItem.appendChild(span);
+        historyBar.appendChild(historyItem);
+        if (checkRemoval && historyBar.children.length > 10) {
+          historyBar.removeChild(historyBar.firstChild);
+        }
+      }
+
+      // Function to create and show the winning ball with 3D animation
+      function showWinningBall(winningNumber) {
+        pollContainer.innerHTML = "";
+        const ball = document.createElement("div");
+        ball.className = "winning-ball";
+        ball.textContent = winningNumber;
+        // Set vivid background based on winning number mapping:
+        if (winningNumber === 0 || winningNumber === 5) {
+          ball.style.backgroundColor = "#AD1457"; // Updated Pink
+          ball.style.color = "#000";
+        } else if ([1, 3, 7, 9].includes(winningNumber)) {
+          ball.style.backgroundColor = "#BF0A30"; // Updated Red
+          ball.style.color = "#fff";
+        } else if ([2, 4, 6, 8].includes(winningNumber)) {
+          ball.style.backgroundColor = "#355E3B"; // Hunter Green
+          ball.style.color = "#fff";
+        } else {
+          ball.style.backgroundColor = "#fff";
+        }
+        pollContainer.appendChild(ball);
+      }
+
+      // Start a new game round
+      function startGameRound() {
+        gameRoundInProgress = true;
+        bettingOpen = true;
+        gameCountdown = 10;
+        document.getElementById("resultMessage").textContent = "";
+        document.getElementById("winningPrizeDisplay").textContent = "";
+        pollContainer.textContent = "Winning Number: -";
+        document.getElementById("statusMessage").textContent = "Betting Starts Now – 10 seconds remaining";
+
+        // Reset local number bets
+        for (let i = 0; i < 10; i++) {
+          userBets[i] = 0;
+          document.getElementById("userBet" + i).textContent = "You: 0";
+        }
+        // Reset local color bets
+        colorBets.pink = colorBets.red = colorBets.green = 0;
+        document.getElementById("userBetColorPink").textContent = "You: 0";
+        document.getElementById("userBetColorRed").textContent = "You: 0";
+        document.getElementById("userBetColorGreen").textContent = "You: 0";
+
+        // Reset Firebase bets for current round (both number and color bets)
+        const betsReset = {};
+        for (let i = 0; i < 10; i++) {
+          betsReset[i] = 0;
+        }
+        set(ref(database, 'gameRoom/currentRound/bets'), betsReset);
+        set(ref(database, 'gameRoom/currentRound/colorBets'), { pink: 0, red: 0, green: 0 });
+
+        // Start countdown sound
+        const countdownAudio = document.getElementById("countdownAudio");
+        if(countdownAudio) {
+          countdownAudio.currentTime = 0;
+          countdownAudio.play();
+        }
+
+        // Start countdown
+        gameCountdownInterval = setInterval(() => {
+          gameCountdown--;
+          document.getElementById("statusMessage").textContent = `Betting Ends In ${gameCountdown} seconds`;
+          if (gameCountdown <= 0) {
+            clearInterval(gameCountdownInterval);
+            if(countdownAudio) {
+              countdownAudio.pause();
+              countdownAudio.currentTime = 0;
+            }
+            bettingOpen = false;
+            document.getElementById("statusMessage").textContent = "Betting Closed – Generating Winning Number...";
+            revealWinningNumber();
+          }
+        }, 1000);
+      }
+
+      // Generate a random winning number (0-9) and process result
+      function revealWinningNumber() {
+        const winningNumber = Math.floor(Math.random() * 10);
+        showWinningBall(winningNumber);
+        setTimeout(() => {
+          revealGameResult(winningNumber);
+        }, 1500);
+      }
+
+      // Determine outcome based on winning number and update payouts
+      function revealGameResult(winningNumber) {
+        const numberMultiplier = 5;   // Number bet payout multiplier (1:5)
+        const colorMultiplier = 1.9;    // Color bet payout multiplier (1:1.9)
+        let numberPayout = 0;
+        let colorPayout = 0;
+        let msg = "";
+
+        // Process number bet payout for the winning number
+        numberPayout = userBets[winningNumber] * numberMultiplier;
+        if (userBets[winningNumber] > 0) {
+          msg += winningNumber + " (Number) won! Payout: " + numberPayout + ". ";
+          currentCoinBalance += numberPayout;
+        } else {
+          msg += "No valid number bet on " + winningNumber + ". ";
+        }
+
+        // Determine winning color based on mapping
+        let winningColor = "";
+        if (winningNumber === 0 || winningNumber === 5) {
+          winningColor = "pink";
+        } else if ([1, 3, 7, 9].includes(winningNumber)) {
+          winningColor = "red";
+        } else if ([2, 4, 6, 8].includes(winningNumber)) {
+          winningColor = "green";
+        }
+
+        // Process color bet payout
+        colorPayout = colorBets[winningColor] * colorMultiplier;
+        if (colorBets[winningColor] > 0) {
+          msg += winningColor + " (Color) won! Payout: " + colorPayout + ". ";
+          currentCoinBalance += colorPayout;
+        } else {
+          msg += "No valid color bet on " + winningColor + ". ";
+        }
+
+        updateCoinBalanceInFirebase(currentCoinBalance);
+        document.getElementById("resultMessage").textContent = msg;
+        document.getElementById("winningPrizeDisplay").textContent = "Round Winning Prize: " + (numberPayout + colorPayout);
+        addToHistory(winningNumber, true);
+        document.getElementById("statusMessage").textContent = "Result Displayed – New Round Starting Soon...";
+        setTimeout(() => {
+          gameRoundInProgress = false;
+          startGameRound();
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>
